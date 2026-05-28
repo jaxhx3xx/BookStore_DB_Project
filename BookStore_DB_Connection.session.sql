@@ -1,0 +1,3 @@
+CREATE TABLE MEMBER(
+    member_id VARCHAR(50) PRIMARY KEY
+);

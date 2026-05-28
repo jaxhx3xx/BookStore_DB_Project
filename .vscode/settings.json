@@ -11,9 +11,9 @@
       "port": 3306,
       "driver": "MySQL",
       "name": "BookStore_DB_Connection",
-      "database": "sys",
       "username": "root",
-      "askForPassword": true
+      "password": "wjddmswn1217!!",
+      "database": "sys"
     }
   ]
 }

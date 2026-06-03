@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>숨쉬는 책방 (Online Bookstore)</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="logo">📚 숨쉬는 책방</div>
+      <nav>
+        <button class="nav-btn active" onclick="switchTab('tab-books')">
+          도서 목록
+        </button>
+        <button class="nav-btn" onclick="switchTab('tab-cart')">
+          장바구니/주문
+        </button>
+        <button class="nav-btn" onclick="switchTab('tab-mypage')">
+          마이페이지
+        </button>
+      </nav>
+    </header>
+
+    <main class="container">
+      <section id="tab-books" class="tab-content active">
+        <h2>오늘의 추천 도서</h2>
+        <div id="book-list" class="book-grid"></div>
+      </section>
+
+      <section id="tab-cart" class="tab-content">
+        <h2>장바구니</h2>
+        <div class="cart-container">
+          <div class="cart-items" id="cart-items">
+            <p class="empty-msg">장바구니가 비어 있습니다.</p>
+          </div>
+          <div class="cart-summary">
+            <h3>결제 금액</h3>
+            <div class="summary-row">
+              <span>총 상품 금액</span>
+              <span id="total-price">0원</span>
+            </div>
+            <button class="btn-order" onclick="checkout()">주문하기</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-mypage" class="tab-content">
+        <div class="mypage-grid">
+          <div class="profile-card">
+            <h3>내 정보</h3>
+            <div id="user-info"></div>
+          </div>
+          <div class="order-history">
+            <h3>최근 주문 내역</h3>
+            <div id="order-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

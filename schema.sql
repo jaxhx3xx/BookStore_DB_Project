@@ -7,3 +7,10 @@ CREATE TABLE MEMBER (
     name VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE BOOK(
+    book_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(100),
+    author VARCHAR(50),
+    price INT NOT NULL,
+    published_date DATE
+)

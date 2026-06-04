@@ -12,7 +12,7 @@
       "driver": "MySQL",
       "name": "BookStore_DB_Connection",
       "username": "root",
-      "password": "wjddmswn1217!!",
+      "password": "wjddmswn1217!!!",
       "database": "sys"
     }
   ]

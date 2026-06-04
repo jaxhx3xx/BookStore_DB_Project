@@ -14,3 +14,4 @@ CREATE TABLE BOOK(
     price INT NOT NULL,
     published_date DATE
 )
+

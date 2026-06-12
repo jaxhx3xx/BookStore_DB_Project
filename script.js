@@ -4,18 +4,59 @@
 
 // [Members 테이블 역할]
 const mockUser = {
-  member_id: "user01",
-  name: "홍길동",
-  email: "hong@example.com",
+  member_id: "user03",
+  name: "정재희",
+  email: "Jeong@google.com",
   phone: "010-1234-5678",
 };
 
 // [Book 테이블 역할]
+// [Book 테이블 역할 - 총 8권으로 풍성하게 업그레이드!]
 const mockBooks = [
-  { book_id: 1, title: "불편한 편의점", author: "김호연", price: 14000 },
-  { book_id: 2, title: "모순", author: "양귀자", price: 13000 },
-  { book_id: 3, title: "데미안", author: "헤르만 헤세", price: 12000 },
-  { book_id: 4, title: "미움받을 용기", author: "기시미 이치로", price: 15000 },
+  {
+    book_id: 1,
+    title: "불편한 편의점",
+    author: "김호연",
+    price: 14000,
+    img: "",
+  },
+  { book_id: 2, title: "모순", author: "양귀자", price: 13000, img: "" },
+  { book_id: 3, title: "데미안", author: "헤르만 헤세", price: 12000, img: "" },
+  {
+    book_id: 4,
+    title: "미움받을 용기",
+    author: "기시미 이치로",
+    price: 15000,
+    img: "",
+  },
+  {
+    book_id: 5,
+    title: "혼자 공부하는 자바",
+    author: "신용권",
+    price: 28000,
+    img: "",
+  },
+  {
+    book_id: 6,
+    title: "달러구트 꿈 백화점",
+    author: "이미예",
+    price: 13800,
+    img: "",
+  },
+  {
+    book_id: 7,
+    title: "부자 아빠 가난한 아빠",
+    author: "로버트 기요사키",
+    price: 17000,
+    img: "",
+  },
+  {
+    book_id: 8,
+    title: "미드나잇 라이브러리",
+    author: "매트 헤이그",
+    price: 15800,
+    img: "",
+  },
 ];
 
 // [Orders & Orders_Detail 테이블 역할 (과거 주문 내역 조회용)]
@@ -60,24 +101,25 @@ function switchTab(tabId) {
 // ==========================================
 
 // [Book 테이블 데이터 로드]
+// [Book 테이블 데이터 로드]
 function loadBooks() {
   const bookListContainer = document.getElementById("book-list");
   bookListContainer.innerHTML = "";
 
-  /* [DB 연동 필요] 
-       fetch('/api/books')
-         .then(res => res.json())
-         .then(data => { ... })
-    */
-
   mockBooks.forEach((book) => {
     const card = document.createElement("div");
     card.className = "book-card";
+
+    // 💡 book.img가 비어있으면 기본 아이콘을 보여주고, 나중에 주소가 채워지면 이미지가 나옵니다!
+    const imageDOM = book.img
+      ? `<img src="${book.img}" alt="${book.title}" class="book-img-src" style="width:100%; height:150px; object-fit:cover; border-radius:8px;">`
+      : `<div class="book-img" style="height:150px; background:#f1f2f6; display:flex; align-items:center; justify-content:center; border-radius:8px; color:#7f8c8d;">📖 도서 이미지</div>`;
+
     card.innerHTML = `
-            <div class="book-img">📖 도서 이미지</div>
-            <div class="book-title">${book.title}</div>
-            <div class="book-author">${book.author}</div>
-            <div class="book-price">${book.price.toLocaleString()}원</div>
+            ${imageDOM}
+            <div class="book-title" style="font-weight:bold; margin-top:10px;">${book.title}</div>
+            <div class="book-author" style="color:#7f8c8d; font-size:0.9rem;">${book.author}</div>
+            <div class="book-price" style="font-weight:bold; color:#2c3e50; margin:5px 0;">${book.price.toLocaleString()}원</div>
             <button class="btn-add-cart" onclick="addToCart(${book.book_id})">장바구니 담기</button>
         `;
     bookListContainer.appendChild(card);

@@ -102,28 +102,41 @@ function switchTab(tabId) {
 
 // [Book 테이블 데이터 로드]
 // [Book 테이블 데이터 로드]
+// [Book 테이블 데이터 로드 - 진짜 DB 연동 버전! 🚀]
 function loadBooks() {
   const bookListContainer = document.getElementById("book-list");
   bookListContainer.innerHTML = "";
 
-  mockBooks.forEach((book) => {
-    const card = document.createElement("div");
-    card.className = "book-card";
+  // 가짜 mockBooks 대신, 서버(app.js)를 통해 MySQL에서 실시간으로 책 8권 긁어오기!
+  fetch("/api/books")
+    .then((response) => response.json())
+    .then((books) => {
+      console.log("디비에서 긁어온 진짜 책 데이터:", books);
 
-    // 💡 book.img가 비어있으면 기본 아이콘을 보여주고, 나중에 주소가 채워지면 이미지가 나옵니다!
-    const imageDOM = book.img
-      ? `<img src="${book.img}" alt="${book.title}" class="book-img-src" style="width:100%; height:150px; object-fit:cover; border-radius:8px;">`
-      : `<div class="book-img" style="height:150px; background:#f1f2f6; display:flex; align-items:center; justify-content:center; border-radius:8px; color:#7f8c8d;">📖 도서 이미지</div>`;
+      // 정재희님이 짜두신 완벽한 화면 그리기 로직 그대로 작동!
+      books.forEach((book) => {
+        const card = document.createElement("div");
+        card.className = "book-card";
 
-    card.innerHTML = `
+        const imageDOM = book.img
+          ? `<img src="${book.img}" alt="${book.title}" class="book-img-src" style="width:100%; height:150px; object-fit:cover; border-radius:8px;">`
+          : `<div class="book-img" style="height:150px; background:#f1f2f6; display:flex; align-items:center; justify-content:center; border-radius:8px; color:#7f8c8d;">📖 도서 이미지</div>`;
+
+        card.innerHTML = `
             ${imageDOM}
             <div class="book-title" style="font-weight:bold; margin-top:10px;">${book.title}</div>
             <div class="book-author" style="color:#7f8c8d; font-size:0.9rem;">${book.author}</div>
             <div class="book-price" style="font-weight:bold; color:#2c3e50; margin:5px 0;">${book.price.toLocaleString()}원</div>
             <button class="btn-add-cart" onclick="addToCart(${book.book_id})">장바구니 담기</button>
         `;
-    bookListContainer.appendChild(card);
-  });
+        bookListContainer.appendChild(card);
+      });
+    })
+    .catch((error) => {
+      console.error("책 데이터를 가져오는데 실패했어요 😭", error);
+      bookListContainer.innerHTML =
+        "<p style='color:red;'>도서 목록을 불러오는 중 오류가 발생했습니다.</p>";
+    });
 }
 
 // [장바구니 추가]

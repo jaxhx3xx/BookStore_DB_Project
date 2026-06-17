@@ -198,6 +198,15 @@ function checkout() {
     0,
   );
 
+  const orderData = {
+    member_id: "Jeong",
+    items: cart.map((item) => ({
+      book_id: item.book_id,
+      quantity: item.quantity,
+      price: item.price,
+    })),
+  };
+
   /* [DB 연동 필요] 
        1. ORDERS 테이블에 insert (member_id, total_price, order_date 등)
        2. 방금 생성된 order_id를 가지고 ORDERS_DETAIL 테이블에 각 아이템 insert (order_id, book_id, quantity, price)
@@ -210,9 +219,21 @@ function checkout() {
        };
     */
 
-  alert(
-    "주문이 완료되었습니다! (DB의 ORDERS 및 ORDERS_DETAIL 테이블에 저장될 시점)",
-  );
+  fetch("/api/orders", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(orderData),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      alert(data.message);
+    })
+    .catch((error) => {
+      console.error(error);
+      alert("주문 실패");
+    });
 
   // 임시 주문 내역 반영 및 장바구니 비우기
   mockOrderHistory.unshift({

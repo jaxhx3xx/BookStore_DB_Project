@@ -26,4 +26,7 @@ INSERT INTO BOOK (title, author, price, stock, published_date) VALUES
 ('미드나잇 라이브러리', '매트 헤이그', 15800, 100, '2021-04-28');
 
 -- 4. 잘 들어갔는지 눈으로 슬쩍 확인용
+SELECT * FROM MEMBER;
 SELECT * FROM BOOK;
+SELECT * FROM ORDERS;
+SELECT * FROM ORDER_DETAIL;

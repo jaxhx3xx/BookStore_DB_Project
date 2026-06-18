@@ -10,8 +10,7 @@ const mockUser = {
   phone: "010-1234-5678",
 };
 
-// [Book 테이블 역할]
-// [Book 테이블 역할 - 총 8권으로 풍성하게 업그레이드!]
+// [Book 테이블 역할 - 총 8권]
 const mockBooks = [
   {
     book_id: 1,
@@ -72,8 +71,8 @@ const mockOrderHistory = [
   },
 ];
 
-// 장바구니 상태 (현재 세션 내에서 유지)
-let cart = [];
+// 🟢 장바구니 상태 (브라우저 금고인 localStorage와 실시간 연동! 🛡️)
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 // ==========================================
 // 2. 화면 초기화 및 탭 전환
@@ -82,6 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadBooks();
   loadUserProfile();
   loadOrderHistory();
+  updateCartUI(); // 💡 새로고침 시 화면 즉시 복구용
 });
 
 function switchTab(tabId) {
@@ -93,7 +93,9 @@ function switchTab(tabId) {
     .forEach((btn) => btn.classList.remove("active"));
 
   document.getElementById(tabId).classList.add("active");
-  event.target.classList.add("active");
+  if (event && event.target) {
+    event.target.classList.add("active");
+  }
 }
 
 // ==========================================
@@ -103,14 +105,13 @@ function switchTab(tabId) {
 // [Book 테이블 데이터 로드 - 진짜 DB 연동 버전! 🚀]
 function loadBooks() {
   const bookListContainer = document.getElementById("book-list");
+  if (!bookListContainer) return;
   bookListContainer.innerHTML = "";
 
   fetch("/api/books")
     .then((response) => response.json())
     .then((books) => {
       console.log("디비에서 긁어온 진짜 책 데이터:", books);
-
-      // 💡 나중에 장바구니 담기에서 쓰기 위해 전역 가짜 변수에 복사해 둡니다.
       window.currentBooks = books;
 
       books.forEach((book) => {
@@ -140,7 +141,6 @@ function loadBooks() {
 
 // [장바구니 추가 - DB 데이터 기반으로 매칭 수정 🛒]
 function addToCart(bookId) {
-  // 진짜 DB에서 가져온 책 목록 중에서 찾습니다.
   const book = (window.currentBooks || mockBooks).find(
     (b) => b.book_id === bookId,
   );
@@ -158,18 +158,23 @@ function addToCart(bookId) {
   updateCartUI();
 }
 
-// [장바구니 UI 업데이트]
+// [장바구니 UI 업데이트 - 변수 에러 및 새로고침 완전 방어 버전 🛡️]
 function updateCartUI() {
   const cartItemsContainer = document.getElementById("cart-items");
   const totalPriceEl = document.getElementById("total-price");
 
+  if (!cartItemsContainer || !totalPriceEl) return;
+
+  // 1. 장바구니가 완전히 비어있을 때 처리
   if (cart.length === 0) {
     cartItemsContainer.innerHTML =
       '<p class="empty-msg">장바구니가 비어 있습니다.</p>';
     totalPriceEl.innerText = "0원";
+    localStorage.setItem("cart", JSON.stringify(cart));
     return;
   }
 
+  // 2. 장바구니에 물건이 있을 때 화면에 그리기
   cartItemsContainer.innerHTML = "";
   let total = 0;
 
@@ -188,9 +193,10 @@ function updateCartUI() {
   });
 
   totalPriceEl.innerText = `${total.toLocaleString()}원`;
+  localStorage.setItem("cart", JSON.stringify(cart)); // 💡 최종 상태 금고 저장!
 }
 
-// [주문하기 클릭 -> ORDERS 및 ORDER_DETAIL 테이블 진짜 저장 🚀 - 오류 방어 버전]
+// [주문하기 클릭 -> ORDERS 및 ORDER_DETAIL 테이블 진짜 저장 🚀]
 function checkout() {
   if (cart.length === 0) {
     alert("장바구니가 비어있습니다.");
@@ -198,7 +204,7 @@ function checkout() {
   }
 
   const orderData = {
-    member_id: "Jeong", // 수행평가용 고정 아이디
+    member_id: "Jeong",
     items: cart.map((item) => ({
       book_id: item.book_id,
       quantity: item.quantity,
@@ -220,35 +226,31 @@ function checkout() {
       return response.json();
     })
     .then((data) => {
-      // 1. 서버가 보내준 성공 메시지만 딱 띄우기
       alert(data.message);
 
-      // 2. 안전하게 장바구니 비우고 UI 갱신
+      // 주문 완료 시에만 금고 폭파하고 장바구니 비우기!
       cart = [];
       updateCartUI();
+      localStorage.removeItem("cart");
 
-      // 3. 마이페이지 갱신 및 이동을 안전하게 처리
       try {
         loadOrderHistory();
         switchTab("tab-mypage");
       } catch (uiError) {
-        console.log(
-          "화면 전환 중 가벼운 경고 발생 (신경 안 써도 됨):",
-          uiError,
-        );
+        console.log(uiError);
       }
     })
     .catch((error) => {
-      console.error("진짜 주문 통신 실패:", error);
-      alert("네트워크 오류로 주문에 실패했습니다.");
+      console.error(error);
+      alert("주문 실패");
     });
 }
 
 // [Members 회원 정보 로드]
 function loadUserProfile() {
   const userInfoContainer = document.getElementById("user-info");
+  if (!userInfoContainer) return;
 
-  // 현재는 데이터베이스 회원조회가 구현 전이므로 mock 정보를 이쁘게 보여줍니다.
   userInfoContainer.innerHTML = `
         <div class="profile-line"><strong>아이디:</strong> ${mockUser.member_id}</div>
         <div class="profile-line"><strong>이름:</strong> ${mockUser.name}</div>
@@ -260,11 +262,11 @@ function loadUserProfile() {
 // [Orders & Order_Detail 주문 내역 로드 - 진짜 DB JOIN 버전! 🔥]
 function loadOrderHistory() {
   const orderListContainer = document.getElementById("order-list");
+  if (!orderListContainer) return;
   orderListContainer.innerHTML = "<p>주문 내역을 불러오는 중... 🔄</p>";
 
-  const memberId = "Jeong"; // 우리가 app.js에 테스트용으로 넣은 아이디
+  const memberId = "Jeong";
 
-  // 백엔드의 JOIN API 주소로 직접 데이터를 긁어옵니다!
   fetch(`/api/orders/${memberId}`)
     .then((response) => response.json())
     .then((orders) => {
@@ -278,7 +280,6 @@ function loadOrderHistory() {
 
       orderListContainer.innerHTML = "";
 
-      // 조인되어 넘어온 데이터(주문번호, 날짜, 책제목, 수량, 가격)를 순서대로 화면에 그림
       orders.forEach((order) => {
         const orderDate = new Date(order.order_date).toLocaleString("ko-KR");
         const totalPrice = order.order_price * order.quantity;

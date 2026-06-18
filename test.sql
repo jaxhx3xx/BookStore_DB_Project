@@ -1,20 +1,19 @@
 USE Bookstore_DB;
 
--- 1. 깔끔한 세팅을 위해 기존 테스트 데이터 청소
-TRUNCATE TABLE ORDER_DETAIL;
+-- 1. 방금 꼬인 데이터들(UPDATE, DELETE, INSERT) 흔적도 없이 싹 청소
 SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE ORDER_DETAIL;
 TRUNCATE TABLE ORDERS;
 TRUNCATE TABLE BOOK;
 TRUNCATE TABLE MEMBER;
 SET FOREIGN_KEY_CHECKS = 1;
 
--- 2. 기본 테스트 회원 가입 (웹페이지 로그인/테스트용)
+-- 2. 원래 기본 회원 가입 데이터 다시 넣기
 INSERT INTO MEMBER (member_id, password, name) VALUES 
 ('user01', 'password123', '홍길동'),
 ('Jeong', 'aaa555', '정재희');
 
--- 3. 웹페이지와 100% 일치하는 진짜 책 8권 입고! 
--- (book_id는 AUTO_INCREMENT로 1부터 8까지 자동으로 차례대로 들어갑니다)
+-- 3. 웹페이지와 100% 일치하는 진짜 원래 책 8권으로 재입고! (원상복구 ⭐)
 INSERT INTO BOOK (title, author, price, stock, published_date) VALUES 
 ('불편한 편의점', '김호연', 14000, 100, '2021-04-20'),
 ('모순', '양귀자', 13000, 100, '2013-04-01'),

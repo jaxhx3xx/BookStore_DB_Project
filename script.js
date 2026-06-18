@@ -100,20 +100,19 @@ function switchTab(tabId) {
 // 3. 기능 구현 및 DB 연동 포인트
 // ==========================================
 
-// [Book 테이블 데이터 로드]
-// [Book 테이블 데이터 로드]
 // [Book 테이블 데이터 로드 - 진짜 DB 연동 버전! 🚀]
 function loadBooks() {
   const bookListContainer = document.getElementById("book-list");
   bookListContainer.innerHTML = "";
 
-  // 가짜 mockBooks 대신, 서버(app.js)를 통해 MySQL에서 실시간으로 책 8권 긁어오기!
   fetch("/api/books")
     .then((response) => response.json())
     .then((books) => {
       console.log("디비에서 긁어온 진짜 책 데이터:", books);
 
-      // 정재희님이 짜두신 완벽한 화면 그리기 로직 그대로 작동!
+      // 💡 나중에 장바구니 담기에서 쓰기 위해 전역 가짜 변수에 복사해 둡니다.
+      window.currentBooks = books;
+
       books.forEach((book) => {
         const card = document.createElement("div");
         card.className = "book-card";
@@ -139,10 +138,15 @@ function loadBooks() {
     });
 }
 
-// [장바구니 추가]
+// [장바구니 추가 - DB 데이터 기반으로 매칭 수정 🛒]
 function addToCart(bookId) {
-  const book = mockBooks.find((b) => b.book_id === bookId);
+  // 진짜 DB에서 가져온 책 목록 중에서 찾습니다.
+  const book = (window.currentBooks || mockBooks).find(
+    (b) => b.book_id === bookId,
+  );
   const cartItem = cart.find((item) => item.book_id === bookId);
+
+  if (!book) return;
 
   if (cartItem) {
     cartItem.quantity += 1;
@@ -186,38 +190,21 @@ function updateCartUI() {
   totalPriceEl.innerText = `${total.toLocaleString()}원`;
 }
 
-// [주문하기 클릭 -> ORDERS 및 ORDERS_DETAIL 테이블 입력 생성]
+// [주문하기 클릭 -> ORDERS 및 ORDER_DETAIL 테이블 진짜 저장 🚀 - 오류 방어 버전]
 function checkout() {
   if (cart.length === 0) {
     alert("장바구니가 비어있습니다.");
     return;
   }
 
-  const totalPrice = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
-
   const orderData = {
-    member_id: "Jeong",
+    member_id: "Jeong", // 수행평가용 고정 아이디
     items: cart.map((item) => ({
       book_id: item.book_id,
       quantity: item.quantity,
       price: item.price,
     })),
   };
-
-  /* [DB 연동 필요] 
-       1. ORDERS 테이블에 insert (member_id, total_price, order_date 등)
-       2. 방금 생성된 order_id를 가지고 ORDERS_DETAIL 테이블에 각 아이템 insert (order_id, book_id, quantity, price)
-       
-       예시 body 데이터 구조:
-       const orderData = {
-           member_id: mockUser.member_id,
-           total_price: totalPrice,
-           items: cart.map(item => ({ book_id: item.book_id, quantity: item.quantity, price: item.price }))
-       };
-    */
 
   fetch("/api/orders", {
     method: "POST",
@@ -226,40 +213,42 @@ function checkout() {
     },
     body: JSON.stringify(orderData),
   })
-    .then((response) => response.json())
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("서버 응답 고장!");
+      }
+      return response.json();
+    })
     .then((data) => {
+      // 1. 서버가 보내준 성공 메시지만 딱 띄우기
       alert(data.message);
+
+      // 2. 안전하게 장바구니 비우고 UI 갱신
+      cart = [];
+      updateCartUI();
+
+      // 3. 마이페이지 갱신 및 이동을 안전하게 처리
+      try {
+        loadOrderHistory();
+        switchTab("tab-mypage");
+      } catch (uiError) {
+        console.log(
+          "화면 전환 중 가벼운 경고 발생 (신경 안 써도 됨):",
+          uiError,
+        );
+      }
     })
     .catch((error) => {
-      console.error(error);
-      alert("주문 실패");
+      console.error("진짜 주문 통신 실패:", error);
+      alert("네트워크 오류로 주문에 실패했습니다.");
     });
-
-  // 임시 주문 내역 반영 및 장바구니 비우기
-  mockOrderHistory.unshift({
-    order_id: `ORD-${Date.now()}`,
-    order_date: new Date().toISOString().split("T")[0],
-    total_price: totalPrice,
-    details: cart.map((item) => ({
-      title: item.title,
-      quantity: item.quantity,
-    })),
-  });
-
-  cart = [];
-  updateCartUI();
-  loadOrderHistory();
-  switchTab("tab-mypage");
 }
 
 // [Members 회원 정보 로드]
 function loadUserProfile() {
   const userInfoContainer = document.getElementById("user-info");
 
-  /* [DB 연동 필요] 
-       fetch(`/api/members/${mockUser.member_id}`)
-    */
-
+  // 현재는 데이터베이스 회원조회가 구현 전이므로 mock 정보를 이쁘게 보여줍니다.
   userInfoContainer.innerHTML = `
         <div class="profile-line"><strong>아이디:</strong> ${mockUser.member_id}</div>
         <div class="profile-line"><strong>이름:</strong> ${mockUser.name}</div>
@@ -268,38 +257,53 @@ function loadUserProfile() {
     `;
 }
 
-// [Orders & Orders_Detail 주문 내역 로드]
+// [Orders & Order_Detail 주문 내역 로드 - 진짜 DB JOIN 버전! 🔥]
 function loadOrderHistory() {
   const orderListContainer = document.getElementById("order-list");
-  orderListContainer.innerHTML = "";
+  orderListContainer.innerHTML = "<p>주문 내역을 불러오는 중... 🔄</p>";
 
-  fetch(`/api/orders/${mockUser.member_id}`);
-  /* [DB 연동 필요] 
-       ORDERS 테이블과 ORDERS_DETAIL 테이블을 JOIN하여 해당 유저의 주문 이력을 가져옴
-       fetch(`/api/orders?member_id=${mockUser.member_id}`)
-    */
+  const memberId = "Jeong"; // 우리가 app.js에 테스트용으로 넣은 아이디
 
-  if (mockOrderHistory.length === 0) {
-    orderListContainer.innerHTML =
-      '<p style="color:#7f8c8d;">주문 내역이 없습니다.</p>';
-    return;
-  }
+  // 백엔드의 JOIN API 주소로 직접 데이터를 긁어옵니다!
+  fetch(`/api/orders/${memberId}`)
+    .then((response) => response.json())
+    .then((orders) => {
+      console.log("디비에서 JOIN으로 가져온 주문 상세 내역:", orders);
 
-  mockOrderHistory.forEach((order) => {
-    const itemsText = order.details
-      .map((d) => `${d.title} (${d.quantity}개)`)
-      .join(", ");
+      if (!orders || orders.length === 0) {
+        orderListContainer.innerHTML =
+          '<p style="color:#7f8c8d; text-align:center;">주문 내역이 없습니다. 🛒</p>';
+        return;
+      }
 
-    const div = document.createElement("div");
-    div.className = "order-item";
-    div.innerHTML = `
-            <div class="order-header">
-                <span>주문번호: ${order.order_id}</span>
-                <span>날짜: ${order.order_date}</span>
+      orderListContainer.innerHTML = "";
+
+      // 조인되어 넘어온 데이터(주문번호, 날짜, 책제목, 수량, 가격)를 순서대로 화면에 그림
+      orders.forEach((order) => {
+        const orderDate = new Date(order.order_date).toLocaleString("ko-KR");
+        const totalPrice = order.order_price * order.quantity;
+
+        const div = document.createElement("div");
+        div.className = "order-item";
+        div.style =
+          "border: 1px solid #e0e0e0; padding: 15px; margin-bottom: 10px; border-radius: 8px; background: #fff;";
+        div.innerHTML = `
+            <div class="order-header" style="display:flex; justify-content:space-between; border-bottom:1px solid #f5f5f5; padding-bottom:8px; margin-bottom:8px; font-size:0.9rem; color:#7f8c8d;">
+                <span>🆔 주문번호: <strong>${order.order_id}</strong></span>
+                <span>📅 날짜: ${orderDate}</span>
             </div>
-            <div style="font-weight:bold; margin-bottom:8px;">${itemsText}</div>
-            <div style="text-align:right; color:#212529; font-weight:bold;">총 결제금액: ${order.total_price.toLocaleString()}원</div>
+            <div style="font-weight:bold; margin-bottom:8px; font-size:1.1rem; color:#2c3e50;">📖 ${order.book_title}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; color:#7f8c8d;">
+               <span>수량: ${order.quantity}개 (단가: ${order.order_price.toLocaleString()}원)</span>
+               <span style="text-align:right; color:#e74c3c; font-weight:bold; font-size:1.1rem;">결제 금액: ${totalPrice.toLocaleString()}원</span>
+            </div>
         `;
-    orderListContainer.appendChild(div);
-  });
+        orderListContainer.appendChild(div);
+      });
+    })
+    .catch((error) => {
+      console.error("주문 내역 로드 에러:", error);
+      orderListContainer.innerHTML =
+        '<p style="color:red;">주문 내역을 불러오는 중 오류가 발생했습니다.</p>';
+    });
 }

@@ -62,3 +62,12 @@ CREATE TABLE ORDER_DETAIL (
     FOREIGN KEY (order_id) REFERENCES ORDERS(order_id) ON DELETE CASCADE,
     FOREIGN KEY (book_id) REFERENCES BOOK(book_id)
 );
+-- 장바구니 진짜 테이블 생성
+CREATE TABLE CART (
+    cart_id INT AUTO_INCREMENT PRIMARY KEY,
+    book_id INT,
+    title VARCHAR(255),
+    price INT,
+    quantity INT DEFAULT 1,
+    FOREIGN KEY (book_id) REFERENCES BOOK(book_id)
+);

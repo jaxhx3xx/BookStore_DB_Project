@@ -139,26 +139,35 @@ function loadBooks() {
     });
 }
 
-// [장바구니 추가 - DB 데이터 기반으로 매칭 수정 🛒]
+// [장바구니 추가 -> 진짜 MySQL 디비 전송 및 실시간 새로고침! 🚀]
 function addToCart(bookId) {
-  const book = (window.currentBooks || mockBooks).find(
-    (b) => b.book_id === bookId,
-  );
-  const cartItem = cart.find((item) => item.book_id === bookId);
-
+  const book = (window.currentBooks || []).find((b) => b.book_id === bookId);
   if (!book) return;
 
-  if (cartItem) {
-    cartItem.quantity += 1;
-  } else {
-    cart.push({ ...book, quantity: 1 });
-  }
+  fetch("/api/cart", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      book_id: book.book_id,
+      title: book.title,
+      price: book.price,
+    }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      alert(data.message); // "~이 진짜 MySQL 장바구니에 담겼습니다!"
 
-  alert(`${book.title}이(가) 장바구니에 담겼습니다.`);
-  updateCartUI();
+      // 💡 중요: 디비에 새로 저장되었으니 화면도 깔끔하게 실시간 새로고침!
+      // 이렇게 하면 디비가 생성한 진짜 cart_id 번호표가 화면에 완벽하게 동기화됩니다.
+      location.reload();
+    })
+    .catch((error) => {
+      console.error("장바구니 디비 전송 에러:", error);
+      alert("장바구니 담기 중 오류가 발생했습니다.");
+    });
 }
 
-// [장바구니 UI 업데이트 - 변수 에러 및 새로고침 완전 방어 버전 🛡️]
+// [장바구니 UI 업데이트 - 진짜 디비 cart_id 연동 및 삭제 버튼 강제 활성화 버전! ❌]
 function updateCartUI() {
   const cartItemsContainer = document.getElementById("cart-items");
   const totalPriceEl = document.getElementById("total-price");
@@ -182,18 +191,27 @@ function updateCartUI() {
     total += item.price * item.quantity;
     const div = document.createElement("div");
     div.className = "cart-item";
+
+    // 💡 item.cart_id 또는 item.book_id를 안전하게 매칭하여 삭제 버튼(❌)을 화면에 확실히 띄웁니다!
+    const deleteId = item.cart_id || item.book_id;
+
     div.innerHTML = `
-            <div>
-                <div style="font-weight:bold;">${item.title}</div>
-                <div style="color:#7f8c8d; font-size:0.9rem;">${item.price.toLocaleString()}원 x ${item.quantity}개</div>
+            <div style="flex: 1; display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f1f2f6;">
+                <div>
+                    <div style="font-weight:bold; font-size:1rem; color:#2c3e50;">${item.title}</div>
+                    <div style="color:#7f8c8d; font-size:0.9rem; margin-top:3px;">${item.price.toLocaleString()}원 x ${item.quantity}개</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="font-weight:bold; color:#e74c3c; font-size:1.1rem;">${(item.price * item.quantity).toLocaleString()}원</div>
+                    <button onclick="removeFromCart(${deleteId})" style="background: #ef5757; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">삭제</button>
+                </div>
             </div>
-            <div style="font-weight:bold; color:#e74c3c;">${(item.price * item.quantity).toLocaleString()}원</div>
         `;
     cartItemsContainer.appendChild(div);
   });
 
   totalPriceEl.innerText = `${total.toLocaleString()}원`;
-  localStorage.setItem("cart", JSON.stringify(cart)); // 💡 최종 상태 금고 저장!
+  localStorage.setItem("cart", JSON.stringify(cart));
 }
 
 // [주문하기 클릭 -> ORDERS 및 ORDER_DETAIL 테이블 진짜 저장 🚀]
@@ -306,5 +324,42 @@ function loadOrderHistory() {
       console.error("주문 내역 로드 에러:", error);
       orderListContainer.innerHTML =
         '<p style="color:red;">주문 내역을 불러오는 중 오류가 발생했습니다.</p>';
+    });
+}
+// ❌ 장바구니 화면에서 삭제 버튼 누르면 디비와 브라우저 메모리 둘 다 지우는 함수
+function removeFromCart(cartId) {
+  if (!cartId) {
+    alert("삭제할 장바구니 번호표(cart_id)를 찾을 수 없습니다.");
+    return;
+  }
+
+  if (
+    !confirm(
+      "장바구니에서 이 책을 진짜 삭제하시겠습니까? (DB 데이터가 삭제됩니다)",
+    )
+  ) {
+    return;
+  }
+
+  // 1. 백엔드로 DELETE 신호 보내기
+  fetch(`/api/cart/${cartId}`, {
+    method: "DELETE",
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      alert(data.message); // "장바구니에서 성공적으로 삭제되었습니다!"
+
+      // 💡 [버그 수정 핵심 ⭐]
+      // 디비에서 지워졌으니, 화면을 그리는 브라우저 cart 배열에서도 이 책을 제거합니다!
+      // cart_id가 일치하거나, 임시로 매칭된 book_id가 일치하는 항목을 제외하고 새로 배열을 짭니다.
+      cart = cart.filter((item) => (item.cart_id || item.book_id) !== cartId);
+
+      // 2. 바뀐 메모리 데이터를 로컬스토리지에 저장하고 화면을 새로 그립니다!
+      localStorage.setItem("cart", JSON.stringify(cart));
+      updateCartUI();
+    })
+    .catch((error) => {
+      console.error("삭제 에러:", error);
+      alert("삭제 중 오류가 발생했습니다.");
     });
 }

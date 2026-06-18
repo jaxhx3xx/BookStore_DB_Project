@@ -104,12 +104,40 @@ app.get("/api/orders/:memberId", (req, res) => {
   });
 });
 
+// 1. 서버 실행 (그대로 유지)
 app.listen(PORT, () => {
   console.log(
     `웹 서버가 http://localhost:${PORT} 에서 활기차게 돌아가고 있습니다!`,
   );
 });
 
+// 2. 🛒 [POST] 장바구니 진짜 MySQL 저장 API (위로 끌어올림 ⭐)
+app.post("/api/cart", (req, res) => {
+  const { book_id, title, price } = req.body;
+  const sql =
+    "INSERT INTO CART (book_id, title, price, quantity) VALUES (?, ?, ?, 1)";
+
+  db.query(sql, [book_id, title, price], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "장바구니 디비 저장 실패" });
+    }
+    res.json({ message: `${title}이(가) 진짜 MySQL 장바구니에 담겼습니다!` });
+  });
+});
+
+// 3. 🗑️ [DELETE] 장바구니 영구 삭제 API (위로 끌어올림 ⭐)
+app.delete("/api/cart/:cart_id", (req, res) => {
+  const { cart_id } = req.params;
+  const sql = "DELETE FROM CART WHERE cart_id = ?";
+
+  db.query(sql, [cart_id], (err, result) => {
+    if (err) return res.status(500).json({ error: "삭제 실패" });
+    res.json({ message: "장바구니에서 성공적으로 삭제되었습니다!" });
+  });
+});
+
+// 4. 🚨 [404 에러 처리반] 모든 API 매칭이 실패했을 때만 작동하도록 맨 밑으로 이동!!
 app.use((req, res, next) => {
   if (req.url.startsWith("/api")) {
     console.log("NOT FOUND API:", req.url);

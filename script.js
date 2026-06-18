@@ -273,6 +273,7 @@ function loadOrderHistory() {
   const orderListContainer = document.getElementById("order-list");
   orderListContainer.innerHTML = "";
 
+  fetch(`/api/orders/${mockUser.member_id}`);
   /* [DB 연동 필요] 
        ORDERS 테이블과 ORDERS_DETAIL 테이블을 JOIN하여 해당 유저의 주문 이력을 가져옴
        fetch(`/api/orders?member_id=${mockUser.member_id}`)

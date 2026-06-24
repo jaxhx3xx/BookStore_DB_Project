@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 // ==========================================
-// 1. MySQL 데이터베이스 연결 설정
+// 1.schema.sql에서 USE Bookstore_DB로 만든 DB에 Node.js가 접속하는 부분.
 // ==========================================
 const db = mysql.createConnection({
   host: "localhost",
@@ -36,7 +36,7 @@ db.connect((err) => {
   console.log("🚀 MySQL Bookstore_DB 연결 성공!");
 });
 
-// [도서 목록 조회 API]
+// BOOK 테이블의 모든 행을 가져와요. data.sql에서 INSERT한 책 8권이 여기서 조회가능
 app.get("/api/books", (req, res) => {
   db.query("SELECT * FROM BOOK", (err, results) => {
     if (err) return res.status(500).send(err);
@@ -48,7 +48,7 @@ app.get("/api/books", (req, res) => {
 app.post("/api/orders", (req, res) => {
   const { member_id, items } = req.body;
   db.query(
-    "INSERT INTO ORDERS (member_id) VALUES (?)",
+    "INSERT INTO ORDERS (member_id) VALUES (?)", // 일단 ORDERS 테이블에 주문을 먼저 저장
     [member_id],
     (err, result) => {
       if (err) return res.status(500).send(err);
@@ -60,7 +60,7 @@ app.post("/api/orders", (req, res) => {
         item.price,
       ]);
       const sql =
-        "INSERT INTO ORDER_DETAIL (order_id, book_id, quantity, order_price) VALUES ?";
+        "INSERT INTO ORDER_DETAIL (order_id, book_id, quantity, order_price) VALUES ?"; //ORDERS_DETAIL 테이블에 상세 내역 저장
       db.query(sql, [detailValues], (err) => {
         if (err) return res.status(500).send(err);
         res.json({
@@ -83,7 +83,7 @@ app.get("/api/orders/:memberId", (req, res) => {
 
   const sql = `
     SELECT 
-      o.order_id,
+      o.order_id,  
       o.order_date,
       b.title AS book_title,
       od.quantity,
@@ -94,6 +94,19 @@ app.get("/api/orders/:memberId", (req, res) => {
     WHERE o.member_id = ?
     ORDER BY o.order_date DESC
   `;
+
+  /*FROM ORDERS o                          -- ORDERS를 'o'라는 별명으로 시작
+  JOIN ORDER_DETAIL od                   -- ORDER_DETAIL을 'od'로
+    ON o.order_id = od.order_id          -- 두 테이블의 order_id가 같은 행끼리 연결
+  JOIN BOOK b                            -- BOOK을 'b'로
+    ON od.book_id = b.book_id            -- ORDER_DETAIL의 book_id로 BOOK과 연결
+  WHERE o.member_id = ?                  -- 특정 회원 것만 필터링 ('Jeong')
+  ORDER BY o.order_date DESC             -- 최신 주문이 맨 위로 */
+
+  /*테이블 3개(ORDERS, ORDER_DETAIL, BOOK)를 JOIN으로 한 번에 합쳐요.
+  ORDERS ↔ ORDER_DETAIL : order_id로 연결
+  ORDER_DETAIL ↔ BOOK : book_id로 연결
+  결과적으로 "누가, 언제, 어떤 책을, 몇 권, 얼마에 샀는지" 한 줄로 나와요. */
 
   db.query(sql, [memberId], (err, results) => {
     if (err) {
@@ -116,6 +129,7 @@ app.post("/api/cart", (req, res) => {
   const { book_id, title, price } = req.body;
   const sql =
     "INSERT INTO CART (book_id, title, price, quantity) VALUES (?, ?, ?, 1)";
+  //schema.sql에서 만든 CART 테이블에 책 정보를 저장해요. 수량은 기본값 1로 시작해요.
 
   db.query(sql, [book_id, title, price], (err, result) => {
     if (err) {
@@ -126,13 +140,19 @@ app.post("/api/cart", (req, res) => {
   });
 });
 
-// 3. 🗑️ [DELETE] 장바구니 영구 삭제 API (위로 끌어올림 ⭐)
-app.delete("/api/cart/:cart_id", (req, res) => {
-  const { cart_id } = req.params;
-  const sql = "DELETE FROM CART WHERE cart_id = ?";
+// 3. 장바구니 영구 삭제 API (book_id 기준으로 매칭하여 완벽 삭제! 🗑️)
+app.delete("/api/cart/:book_id", (req, res) => {
+  const { book_id } = req.params;
 
-  db.query(sql, [cart_id], (err, result) => {
-    if (err) return res.status(500).json({ error: "삭제 실패" });
+  // 💡 SQL문을 CART 테이블의 book_id를 조준하도록 수정했습니다!
+  const sql = "DELETE FROM CART WHERE book_id = ?";
+  //book_id를 기준으로 CART 테이블에서 해당 행을 삭제해요.
+
+  db.query(sql, [book_id], (err, result) => {
+    if (err) {
+      console.error("디비 삭제 에러:", err);
+      return res.status(500).json({ error: "삭제 실패" });
+    }
     res.json({ message: "장바구니에서 성공적으로 삭제되었습니다!" });
   });
 });

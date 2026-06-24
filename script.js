@@ -108,6 +108,7 @@ function loadBooks() {
   if (!bookListContainer) return;
   bookListContainer.innerHTML = "";
 
+  //app.js의 SELECT * FROM BOOK 결과를 받아서 화면에 카드로 그림
   fetch("/api/books")
     .then((response) => response.json())
     .then((books) => {
@@ -144,6 +145,7 @@ function addToCart(bookId) {
   const book = (window.currentBooks || []).find((b) => b.book_id === bookId);
   if (!book) return;
 
+  //app.js의 INSERT INTO CART를 호출해요. 성공하면 localStorage에도 저장해서 새로고침해도 유지돼요.
   fetch("/api/cart", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -157,8 +159,23 @@ function addToCart(bookId) {
     .then((data) => {
       alert(data.message); // "~이 진짜 MySQL 장바구니에 담겼습니다!"
 
-      // 💡 중요: 디비에 새로 저장되었으니 화면도 깔끔하게 실시간 새로고침!
-      // 이렇게 하면 디비가 생성한 진짜 cart_id 번호표가 화면에 완벽하게 동기화됩니다.
+      // 💡 [여기 딱 한 줄 추가했습니다! ⭐] 디비 전송 성공 시 화면용 메모리 배열(cart)에도 추가해 줍니다.
+      const existingItem = cart.find((item) => item.book_id === bookId);
+      if (existingItem) {
+        existingItem.quantity = (existingItem.quantity || 1) + 1;
+      } else {
+        cart.push({
+          book_id: book.book_id,
+          title: book.title,
+          price: book.price,
+          quantity: 1,
+        });
+      }
+
+      // 💡 [여기 딱 한 줄 추가했습니다! ⭐] 새로고침(reload)해도 유지되도록 브라우저 금고에 값을 임시 저장해 둡니다.
+      localStorage.setItem("cart", JSON.stringify(cart));
+
+      // 디비에 새로 저장되었으니 원래 코드 스타일대로 실시간 새로고침!
       location.reload();
     })
     .catch((error) => {
@@ -230,6 +247,8 @@ function checkout() {
     })),
   };
 
+  /* app.js의 INSERT INTO ORDERS → INSERT INTO ORDER_DETAIL 2단계를 순서대로 실행시켜요.
+  member_id: "Jeong"은 data.sql에서 INSERT한 회원이에요. */
   fetch("/api/orders", {
     method: "POST",
     headers: {
@@ -326,6 +345,7 @@ function loadOrderHistory() {
         '<p style="color:red;">주문 내역을 불러오는 중 오류가 발생했습니다.</p>';
     });
 }
+
 // ❌ 장바구니 화면에서 삭제 버튼 누르면 디비와 브라우저 메모리 둘 다 지우는 함수
 function removeFromCart(cartId) {
   if (!cartId) {
@@ -349,9 +369,7 @@ function removeFromCart(cartId) {
     .then((data) => {
       alert(data.message); // "장바구니에서 성공적으로 삭제되었습니다!"
 
-      // 💡 [버그 수정 핵심 ⭐]
-      // 디비에서 지워졌으니, 화면을 그리는 브라우저 cart 배열에서도 이 책을 제거합니다!
-      // cart_id가 일치하거나, 임시로 매칭된 book_id가 일치하는 항목을 제외하고 새로 배열을 짭니다.
+      // 💡 디비에서 지워졌으니, 화면을 그리는 브라우저 cart 배열에서도 이 책을 제거합니다!
       cart = cart.filter((item) => (item.cart_id || item.book_id) !== cartId);
 
       // 2. 바뀐 메모리 데이터를 로컬스토리지에 저장하고 화면을 새로 그립니다!

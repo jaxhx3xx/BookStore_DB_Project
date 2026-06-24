@@ -1,19 +1,11 @@
 USE Bookstore_DB;
 
--- 1. 방금 꼬인 데이터들(UPDATE, DELETE, INSERT) 흔적도 없이 싹 청소
-SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE ORDER_DETAIL;
-TRUNCATE TABLE ORDERS;
-TRUNCATE TABLE BOOK;
-TRUNCATE TABLE MEMBER;
-SET FOREIGN_KEY_CHECKS = 1;
-
--- 2. 원래 기본 회원 가입 데이터 다시 넣기
+-- 2. 원래 기본 회원 가입 데이터 넣기
 INSERT INTO MEMBER (member_id, password, name) VALUES 
 ('user01', 'password123', '홍길동'),
 ('Jeong', 'aaa555', '정재희');
 
--- 3. 웹페이지와 100% 일치하는 진짜 원래 책 8권으로 재입고! (원상복구 ⭐)
+-- 3. 웹페이지와 100% 일치하는 진짜 원래 책 8권으로 재입고
 INSERT INTO BOOK (title, author, price, stock, published_date) VALUES 
 ('불편한 편의점', '김호연', 14000, 100, '2021-04-20'),
 ('모순', '양귀자', 13000, 100, '2013-04-01'),
@@ -33,4 +25,20 @@ SELECT * FROM cart;
 
 DELETE FROM CART WHERE cart_id = 1;
 
-SELECT * FROM cart;
+
+-- 1. 자식 테이블(상세 내역) 데이터 먼저 삭제
+DELETE FROM ORDER_DETAIL;
+-- 2. 부모 테이블(주문 메인) 데이터 삭제
+DELETE FROM ORDERS;
+-- 3. 장바구니 테이블 데이터 삭제
+DELETE FROM CART;
+
+-- DELETE로 비우면 번호표가 누적되므로, 다음 주문이 1번부터 시작하도록 카운터를 직접 1로 세팅해 줍니다!
+ALTER TABLE ORDERS AUTO_INCREMENT = 1;
+ALTER TABLE ORDER_DETAIL AUTO_INCREMENT = 1;
+ALTER TABLE CART AUTO_INCREMENT = 1;
+
+
+ SELECT * FROM cart;
+ SELECT * FROM order_detail;
+ SELECT * FROM orders;

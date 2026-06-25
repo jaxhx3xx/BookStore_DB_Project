@@ -44,6 +44,24 @@ app.get("/api/books", (req, res) => {
   });
 });
 
+{
+  /* <select코드>
+
+페이지 접속
+    ↓
+main.js가 /api/books 주소로 요청
+    ↓
+app.js가 요청 받음 (app.get 실행)
+    ↓
+MySQL에 SELECT * FROM BOOK 실행
+    ↓
+책 8권 데이터가 results에 담김
+    ↓
+res.json(results)으로 main.js에 전달
+    ↓
+화면에 책 카드 8개 표시! */
+}
+
 // [주문하기 처리 API]
 app.post("/api/orders", (req, res) => {
   const { member_id, items } = req.body;
@@ -94,6 +112,11 @@ app.get("/api/orders/:memberId", (req, res) => {
     WHERE o.member_id = ?
     ORDER BY o.order_date DESC
   `;
+  //   마이페이지 탭 클릭 or 주문 완료 후
+  //         ↓
+  // script.js가 /api/orders/Jeong 주소로 요청
+  //         ↓
+  // app.js의 이 코드가 실행됨!
 
   /*FROM ORDERS o                          -- ORDERS를 'o'라는 별명으로 시작
   JOIN ORDER_DETAIL od                   -- ORDER_DETAIL을 'od'로
@@ -140,6 +163,19 @@ app.post("/api/cart", (req, res) => {
   });
 });
 
+{
+  /* <insert 코드>
+"장바구니 담기" 버튼 클릭
+        ↓
+script.js가 book_id, title, price를 app.js로 전송
+        ↓
+app.js가 req.body에서 3개 꺼냄
+        ↓
+? 빈칸에 값 채워서 SQL 실행
+        ↓
+CART 테이블에 한 행 추가됨 */
+}
+
 // 3. 장바구니 영구 삭제 API (book_id 기준으로 매칭하여 완벽 삭제! 🗑️)
 app.delete("/api/cart/:book_id", (req, res) => {
   const { book_id } = req.params;
@@ -156,6 +192,17 @@ app.delete("/api/cart/:book_id", (req, res) => {
     res.json({ message: "장바구니에서 성공적으로 삭제되었습니다!" });
   });
 });
+{
+  /* <delete 코드> 
+
+장바구니에서 ❌ 삭제 버튼 클릭 (book_id = 2)
+        ↓
+script.js가 /api/cart/2 주소로 DELETE 요청
+        ↓
+app.js가 req.params에서 book_id = 2 꺼냄
+        ↓
+? 빈칸에 2 채워서 SQL 실행 */
+}
 
 // 4. 🚨 [404 에러 처리반] 모든 API 매칭이 실패했을 때만 작동하도록 맨 밑으로 이동!!
 app.use((req, res, next) => {

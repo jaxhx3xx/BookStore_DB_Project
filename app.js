@@ -91,9 +91,23 @@ app.post("/api/orders", (req, res) => {
   );
 });
 
+// "주문하기" 버튼 클릭
+//         ↓
+// script.js → member_id, items 묶어서 전송
+//         ↓
+// app.js → req.body에서 꺼냄
+//         ↓
+// ① ORDERS에 INSERT → order_id = 1 생성
+//         ↓
+// ② 그 order_id(=1)로 ORDER_DETAIL에 INSERT
+//         ↓
+// ORDERS              ORDER_DETAIL
+// 주문서 1개     →    상세내역 2개 (책 2종류)
+//         ↓
+// "주문이 DB에 완벽히 저장되었습니다!" alert 표시!
+
 // ==========================================
-// 4. [DB 연동 포인트] 특정 회원의 주문 상세 내역 조회 API (수행평가 만점용 JOIN 🔥)
-// 💡 [버그 수정 2] 중복되던 기존 반쪽짜리 API를 과감히 지우고 JOIN 버전만 남겼습니다!
+// 4. [DB 연동 포인트] 특정 회원의 주문 상세 내역 조회 API
 // ==========================================
 app.get("/api/orders/:memberId", (req, res) => {
   const { memberId } = req.params;
@@ -117,6 +131,9 @@ app.get("/api/orders/:memberId", (req, res) => {
   // script.js가 /api/orders/Jeong 주소로 요청
   //         ↓
   // app.js의 이 코드가 실행됨!
+  //> - `ORDERS`랑 `ORDER_DETAIL`을 order_id가 같은 것끼리 연결해요
+  // > - `ORDER_DETAIL`이랑 `BOOK`을 book_id가 같은 것끼리 연결해요
+  //만약 조인을 안 한다면  "Jeong이 모순을 주문했다" 라는 걸 테이블 3개를 따로따로 봐야 알 수 있음!
 
   /*FROM ORDERS o                          -- ORDERS를 'o'라는 별명으로 시작
   JOIN ORDER_DETAIL od                   -- ORDER_DETAIL을 'od'로
@@ -195,7 +212,7 @@ app.delete("/api/cart/:book_id", (req, res) => {
 {
   /* <delete 코드> 
 
-장바구니에서 ❌ 삭제 버튼 클릭 (book_id = 2)
+장바구니에서 삭제 버튼 클릭 (book_id = 2)
         ↓
 script.js가 /api/cart/2 주소로 DELETE 요청
         ↓
